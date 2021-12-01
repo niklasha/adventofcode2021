@@ -1,8 +1,9 @@
 use crate::day::*;
+use itertools::Itertools;
 
 pub struct Day01 {}
 
-type Output = i64;
+type Output = usize;
 
 impl Day for Day01 {
     fn tag(&self) -> &str { "01" }
@@ -18,11 +19,14 @@ impl Day for Day01 {
 
 impl Day01 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Err(Box::new(AocError))
+        Ok(Utils::numbers(input).map(Result::unwrap).tuple_windows()
+            .filter(|(a, b)| a < b).count())
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Err(Box::new(AocError))
+        Ok(Utils::numbers(input).map(Result::unwrap).tuple_windows()
+            .map(|(a, b, c)| a + b + c).tuple_windows().filter(|(a, b)| a < b)
+            .count())
     }
 }
 
@@ -36,7 +40,16 @@ mod tests {
 
     #[test]
     fn part1() {
-        test1("", 0);
+        test1("199
+200
+208
+210
+200
+207
+240
+269
+260
+263", 7);
     }
 
     fn test2(s: &str, f: Output) {
@@ -45,6 +58,15 @@ mod tests {
 
     #[test]
     fn part2() {
-        test2("", 0);
+        test2("199
+200
+208
+210
+200
+207
+240
+269
+260
+263", 5);
     }
 }
