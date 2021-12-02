@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use regex::Regex;
 use crate::day::*;
 
@@ -19,32 +20,33 @@ impl Day for Day02 {
 
 impl Day02 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let lines = io::BufReader::new(input).lines();
+        let mut lines = io::BufReader::new(input).lines();
         lazy_static! {
             static ref RE: Regex = Regex::new("(.+) (.+)").unwrap();
         }
-        let (d, l) = lines.fold((0, 0), |(d, h), l| {
-            let l = l.unwrap();
+        let (d, l) = lines.fold_ok((0, 0), |(d, h), l| {
             let cap = RE.captures(&l).unwrap();
             let dir: &str = &cap[1];
             let n = cap[2].parse::<i64>().unwrap();
-            (d + if dir == "down" { n } else if dir == "up" { -n } else { 0 }, h + if dir =="forward" { n } else { 0 })
-        });
+            (d + if dir == "down" { n } else if dir == "up" { -n } else { 0 },
+             h + if dir =="forward" { n } else { 0 })
+        })?;
         Ok(d * l)
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let lines = io::BufReader::new(input).lines();
+        let mut lines = io::BufReader::new(input).lines();
         lazy_static! {
             static ref RE: Regex = Regex::new("(.+) (.+)").unwrap();
         }
-        let (d, l, _) = lines.fold((0, 0, 0), |(d, h, a), l| {
-            let l = l.unwrap();
+        let (d, l, _) = lines.fold_ok((0, 0, 0), |(d, h, a), l| {
             let cap = RE.captures(&l).unwrap();
             let dir: &str = &cap[1];
             let n = cap[2].parse::<i64>().unwrap();
-            (d + if dir == "forward" { n * a } else { 0 }, h + if dir =="forward" { n } else { 0 }, a + if dir == "down" { n } else if dir == "up" { -n } else { 0 })
-        });
+            (d + if dir == "forward" { n * a } else { 0 },
+             h + if dir =="forward" { n } else { 0 },
+             a + if dir == "down" { n } else if dir == "up" { -n } else { 0 })
+        })?;
         Ok(d * l)
     }
 }
