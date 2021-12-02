@@ -18,34 +18,48 @@ impl Day for Day02 {
     }
 }
 
+pub enum Command {
+    Forward(Output),
+    Down(Output),
+    Up(Output),
+}
+use Command::*;
+
 impl Day02 {
-    fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut lines = io::BufReader::new(input).lines();
+    fn parse(s: &str) -> BoxResult<Command> {
         lazy_static! {
             static ref RE: Regex = Regex::new("(.+) (.+)").unwrap();
         }
+        let cap = RE.captures(s).ok_or(AocError)?;
+        let n = cap[2].parse::<i64>()?;
+        match &cap[1] {
+            "forward" => Ok(Forward(n)),
+            "down" => Ok(Down(n)),
+            "up" => Ok(Up(n)),
+            _ => Err(Box::new(AocError))
+        }
+    }
+
+    fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        let mut lines = io::BufReader::new(input).lines();
         let (d, l) = lines.fold_ok((0, 0), |(d, h), l| {
-            let cap = RE.captures(&l).unwrap();
-            let dir: &str = &cap[1];
-            let n = cap[2].parse::<i64>().unwrap();
-            (d + if dir == "down" { n } else if dir == "up" { -n } else { 0 },
-             h + if dir =="forward" { n } else { 0 })
+            match Self::parse(&l).unwrap() {
+                Forward(n) => (d, h + n),
+                Down(n) => (d + n, h),
+                Up(n) => (d - n, h)
+            }
         })?;
         Ok(d * l)
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let mut lines = io::BufReader::new(input).lines();
-        lazy_static! {
-            static ref RE: Regex = Regex::new("(.+) (.+)").unwrap();
-        }
         let (d, l, _) = lines.fold_ok((0, 0, 0), |(d, h, a), l| {
-            let cap = RE.captures(&l).unwrap();
-            let dir: &str = &cap[1];
-            let n = cap[2].parse::<i64>().unwrap();
-            (d + if dir == "forward" { n * a } else { 0 },
-             h + if dir =="forward" { n } else { 0 },
-             a + if dir == "down" { n } else if dir == "up" { -n } else { 0 })
+            match Self::parse(&l).unwrap() {
+                Forward(n) => (d + n * a, h + n, a),
+                Down(n) => (d, h, a + n),
+                Up(n) => (d, h, a - n)
+            }
         })?;
         Ok(d * l)
     }
@@ -66,7 +80,8 @@ down 5
 forward 8
 up 3
 down 8
-forward 2", 150);
+forward 2",
+              150);
     }
 
     fn test2(s: &str, f: Output) {
@@ -80,6 +95,7 @@ down 5
 forward 8
 up 3
 down 8
-forward 2", 900);
+forward 2",
+              900);
     }
 }
