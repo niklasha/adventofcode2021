@@ -42,26 +42,26 @@ impl Day02 {
 
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let mut lines = io::BufReader::new(input).lines();
-        let (d, l) = lines.fold_ok((0, 0), |(d, h), l| {
+        let (d, h) = lines.fold_ok((0, 0), |(d, h), l| {
             match Self::parse(&l).unwrap() {
                 Forward(n) => (d, h + n),
                 Down(n) => (d + n, h),
                 Up(n) => (d - n, h)
             }
         })?;
-        Ok(d * l)
+        Ok(d * h)
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let mut lines = io::BufReader::new(input).lines();
-        let (d, l, _) = lines.fold_ok((0, 0, 0), |(d, h, a), l| {
+        let (d, h, _) = lines.fold_ok((0, 0, 0), |(d, h, a), l| {
             match Self::parse(&l).unwrap() {
                 Forward(n) => (d + n * a, h + n, a),
                 Down(n) => (d, h, a + n),
                 Up(n) => (d, h, a - n)
             }
         })?;
-        Ok(d * l)
+        Ok(d * h)
     }
 }
 
