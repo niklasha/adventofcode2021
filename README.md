@@ -5,7 +5,8 @@ They are written in [Rust](https://rust-lang.org).
 
 My reason for doing these are, besides the fact that I like puzzle solving, I want to improve my skills in Rust.
 
-You need Rust, [rustup](https://rustup.rs/) is the suggested way to install Rust, that is about it.  You may need to add some SSL libraries, depending on operating system, but the installation process will tell you, if so.
+You need Rust, [rustup](https://rustup.rs/) is the suggested way to install Rust, that is about it.
+You may need to add some SSL libraries, depending on operating system, but the installation process will tell you, if so.
 
 Run all the days with:
 ```
@@ -18,7 +19,9 @@ The tests (the examples given in the days' descriptions) can be run with:
 cargo test
 ```
 
-When I solved a puzzle in a not so idiomatic or nice way, and later went back to refine the code, I have chosen to retain the naive solution as dead code with method names suffixed with  "_naive".
+For every day, the first commit will be the solution with which I solved the puzzle.
+After that, I may still revise the code to be more idiomatic or just nicer.
+
 
 ```
 My results were:
