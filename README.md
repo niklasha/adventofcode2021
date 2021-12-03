@@ -25,8 +25,9 @@ After that, I may still revise the code to be more idiomatic or just nicer.
 
 ```
 My results were:
-      -------Part 1--------   -------Part 2--------
-Day       Time  Rank  Score       Time  Rank  Score
-  2   00:14:14  8569      0   00:19:58  8128      0
-  1   00:09:46  4878      0   00:14:34  3793      0
+      --------Part 1--------   --------Part 2--------
+Day       Time   Rank  Score       Time   Rank  Score
+  3   00:51:25  13417      0   02:10:52  12509      0
+  2   00:14:14   8569      0   00:19:58   8128      0
+  1   00:09:46   4878      0   00:14:34   3793      0
 ```
