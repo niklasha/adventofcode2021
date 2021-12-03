@@ -37,11 +37,7 @@ impl Day03 {
             &c0.iter().zip(c1.iter())
                 .map(|(c0, c1)| if *c0 > *c1 { b'0' } else { b'1' }).collect())
             ?;
-        let e = Self::bin_to_dec(
-            &c0.iter().zip(c1.iter())
-                .map(|(c0, c1)| if *c1 > *c0 { b'0' } else { b'1' }).collect())
-            ?;
-        Ok(e * g)
+        Ok(g * Self::complement(g, cs))
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
@@ -55,6 +51,10 @@ impl Day03 {
     fn bin_to_dec(v: &Vec<u8>) -> Result<i64, ParseIntError> {
         i64::from_str_radix(
             &v.into_iter().map(|b| *b as char).collect::<String>(), 2)
+    }
+
+    fn complement(n: i64, l: usize) -> i64 {
+        !n & ((1 << l) - 1)
     }
 
     fn most_common(v: &Vec<u8>) -> u8 {
