@@ -1,7 +1,8 @@
 use itertools::Itertools;
 use itertools::FoldWhile::*;
 use crate::day::*;
-//use crate::day::io::Read;
+use crate::day::io::Read;
+use crate::day::error::Error;
 
 pub struct Day04 {}
 
@@ -23,20 +24,8 @@ type Board = Vec<Vec<(Output, bool)>>;
 
 impl Day04 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut lines = io::BufReader::new(input).lines();
-        let numbers = lines.next().ok_or(Box::new(AocError))??;
-        let mut numbers = numbers.split(",")
-            .map(|s| s.parse::<Output>().unwrap());
-        lines.next();
-        let boards = lines.map(|s| s.unwrap().split_whitespace()
-            .map(|s| (s.parse::<Output>().unwrap(), false))
-            .collect::<Vec<_>>())
-            .map(|v| vec![v])
-            .coalesce(|x, y|
-                if y[0].is_empty() { Err((x, y)) } else if x[0].is_empty() { Ok(y) } else { Ok(x.into_iter().chain(y).collect::<Vec<_>>()) })
-            .collect::<Vec<_>>();
-//        let (numbers, boards) = Self::setup(input)?;
-        let (win, last) = numbers.fold_while(
+        let (numbers, boards) = Self::setup(input)?;
+        let (win, last) = numbers.into_iter().fold_while(
             (boards, None), |(boards, _), n| {
                 let boards = boards.into_iter().map(move |b| Self::mark(b, n))
                     .collect::<Vec<_>>();
@@ -46,28 +35,12 @@ impl Day04 {
                     None => Continue((boards, Some(n)))
                 }
         }).into_inner();
-        let sum: Output = win[0].iter()
-            .map(|r|
-                r.iter().map(|&(n, m)| if m { 0 } else { n }).sum::<Output>())
-            .sum();
-        Ok(sum * last.ok_or(Box::new(AocError))?)
+        Self::compute_result(win, last)
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut lines = io::BufReader::new(input).lines();
-        let numbers = lines.next().ok_or(Box::new(AocError))??;
-        let mut numbers = numbers.split(",")
-            .map(|s| s.parse::<Output>().unwrap());
-        lines.next();
-        let boards = lines.map(|s| s.unwrap().split_whitespace()
-            .map(|s| (s.parse::<Output>().unwrap(), false))
-            .collect::<Vec<_>>())
-            .map(|v| vec![v])
-            .coalesce(|x, y|
-                if y[0].is_empty() { Err((x, y)) } else if x[0].is_empty() { Ok(y) } else { Ok(x.into_iter().chain(y).collect::<Vec<_>>()) })
-            .collect::<Vec<_>>();
-//        let (numbers, boards) = Self::setup(input)?;
-        let (win, last) = numbers.fold_while(
+        let (numbers, boards) = Self::setup(input)?;
+        let (win, last) = numbers.into_iter().fold_while(
             (boards, None), |(boards, _), n| {
                 let boards = boards.into_iter().map(move |b| Self::mark(b, n))
                     .collect::<Vec<_>>();
@@ -84,28 +57,37 @@ impl Day04 {
                     Continue((no_win.into_iter().map(|b| b.clone()).collect(), Some(n)))
                 }
             }).into_inner();
+        Self::compute_result(win, last)
+    }
+
+    fn setup(input: &mut dyn Read) -> BoxResult<(Vec<Output>, Vec<Board>)> {
+        let mut lines = io::BufReader::new(input).lines();
+        let numbers = lines.next().ok_or(Box::new(AocError))??;
+        let mut numbers = numbers.split(",")
+            .map(|s| s.parse::<Output>().unwrap());
+        lines.next();
+        let boards = lines.map(|s| s.unwrap().split_whitespace()
+            .map(|s| (s.parse::<Output>().unwrap(), false))
+            .collect::<Vec<_>>())
+            .map(|v| vec![v])
+            .coalesce(|x, y|
+                if y[0].is_empty() { Err((x, y)) }
+                else if x[0].is_empty() { Ok(y) }
+                else { Ok(x.into_iter().chain(y).collect::<Vec<_>>()) })
+            .collect::<Vec<_>>();
+        // XXX Not fond of collecting here, but returning iterators are
+        // XXX harder than what it seems like, so...
+        Ok((numbers.collect(), boards))
+    }
+
+    fn compute_result(win: Vec<Vec<Vec<(i64, bool)>>>, last: Option<i64>)
+        -> Result<i64, Box<dyn Error>> {
         let sum: Output = win[0].iter()
             .map(|r|
                 r.iter().map(|&(n, m)| if m { 0 } else { n }).sum::<Output>())
             .sum();
         Ok(sum * last.ok_or(Box::new(AocError))?)
     }
-
-    // fn setup(input: &mut dyn Read) -> BoxResult<(Iterator<Item=Output>, Vec<Board>)> {
-    //     let mut lines = io::BufReader::new(input).lines();
-    //     let numbers = lines.next().ok_or(Box::new(AocError))??;
-    //     let mut numbers = numbers.split(",")
-    //         .map(|s| s.parse::<Output>().unwrap());
-    //     lines.next();
-    //     let boards = lines.map(|s| s.unwrap().split_whitespace()
-    //         .map(|s| (s.parse::<Output>().unwrap(), false))
-    //         .collect::<Vec<_>>())
-    //         .map(|v| vec![v])
-    //         .coalesce(|x, y|
-    //             if y[0].is_empty() { Err((x, y)) } else if x[0].is_empty() { Ok(y) } else { Ok(x.into_iter().chain(y).collect::<Vec<_>>()) })
-    //         .collect::<Vec<_>>();
-    //     Ok((numbers, boards))
-    // }
 
     fn mark(b: Board, n: Output) -> Board {
         b.into_iter().map(move |r| r.into_iter()
