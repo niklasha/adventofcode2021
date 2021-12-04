@@ -24,7 +24,7 @@ impl Day03 {
         let dr = Utils::byte_matrix(input)?;
         let cs = dr[0].len();
         let rs = dr.len() as Output;
-        let c0 = dr.iter().fold((vec![0 as Output; cs]),
+        let c0 = dr.iter().fold(vec![0 as Output; cs],
             |c0, r| c0.iter().zip(r.iter())
                 .map(|(c, v)| if *v == b'0' { *c + 1 } else { *c }).collect());
         let g = Self::bin_to_dec(
