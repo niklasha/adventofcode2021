@@ -20,75 +20,50 @@ impl Day for Day05 {
     }
 }
 
+type Vent = ((i32, i32), (i32, i32));
+
 impl Day05 {
-    fn parse(s: &str) -> BoxResult<((u32, u32), (u32, u32))> {
+    fn parse(s: &str) -> BoxResult<Vent> {
         lazy_static! {
-            static ref RE: Regex = Regex::new("(\\d+),(\\d+) -> (\\d+),(\\d++)").unwrap();
+            static ref RE: Regex
+                = Regex::new("(\\d+),(\\d+) -> (\\d+),(\\d++)").unwrap();
         }
         let cap = RE.captures(s).ok_or(AocError)?;
-        Ok(((cap[1].parse::<u32>()?, cap[2].parse::<u32>()?),
-            (cap[3].parse::<u32>()?, cap[4].parse::<u32>()?)))
+        Ok(((cap[1].parse()?, cap[2].parse()?),
+            (cap[3].parse()?, cap[4].parse()?)))
     }
 
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut m = HashMap::new();
-        let n = io::BufReader::new(input).lines()
+        let vents: Vec<Vent> = io::BufReader::new(input).lines()
             .map(|l| Self::parse(&l.unwrap()).unwrap())
-            .filter(|((x1, y1), (x2, y2))| x1 == x2 || y1 == y2)
-            .fold(0, |n, ((x1, y1), (x2, y2))| {
-                if x1 == x2 {
-                    Self::range(y1, y2).fold(n, |n, y| {
-                        let v: u32 = *m.get(&(x1, y)).unwrap_or(&0);
-                        m.insert((x1, y), v + 1);
-                        if v == 1 { n + 1 } else { n }
-                    })
-                } else {
-                    Self::range(x1, x2).fold(n, |n, x| {
-                        let v = *m.get(&(x, y1)).unwrap_or(&0);
-                        m.insert((x, y1), v + 1);
-                        if v == 1 { n + 1 } else { n }
-                    })
-                }
-            });
-        Ok(n)
-    }
-
-    fn range(a: u32, b: u32) -> RangeInclusive<u32> {
-        if a > b { b..=a } else { a..=b }
+            .filter(|((x1, y1), (x2, y2))| x1 == x2 || y1 == y2).collect();
+        Ok(Self::compute_overlap(&vents))
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        let vents: Vec<Vent> = io::BufReader::new(input).lines()
+            .map(|l| Self::parse(&l.unwrap()).unwrap()).collect();
+        Ok(Self::compute_overlap(&vents))
+    }
+
+    fn compute_overlap(vents: &Vec<Vent>) -> usize {
         let mut m = HashMap::new();
-        let n = io::BufReader::new(input).lines()
-            .map(|l| Self::parse(&l.unwrap()).unwrap())
-            .fold(0, |n, ((x1, y1), (x2, y2))| {
-                if x1 == x2 {
-                    Self::range(y1, y2).fold(n, |n, y| {
-                        let v: u32 = *m.get(&(x1, y)).unwrap_or(&0);
-                        m.insert((x1, y), v + 1);
-                        if v == 1 { n + 1 } else { n }
-                    })
-                } else if y1 == y2 {
-                    Self::range(x1, x2).fold(n, |n, x| {
-                        let v = *m.get(&(x, y1)).unwrap_or(&0);
-                        m.insert((x, y1), v + 1);
-                        if v == 1 { n + 1 } else { n }
-                    })
-                } else /*if i32::abs(x1 as i32 - x2 as i32) == i32::abs(y1 as i32 - y2 as i32)*/ {
-                    let dx = signum(x2 as i32 - x1 as i32);
-                    let dy = signum(y2 as i32 - y1 as i32);
-                    (0..=i32::abs(x2 as i32 - x1 as i32)).fold(n, |n, i| {
-                        let x = (x1 as i32 + dx * i) as u32;
-                        let y = (y1 as i32 + dy * i) as u32;
-                        let v = *m.get(&(x, y)).unwrap_or(&0);
-                        m.insert((x, y), v + 1);
-                        if v == 1 { n + 1 } else { n }
-                    })
-//                } else {
-//                    n
-                }
-            });
-        Ok(n)
+        vents.into_iter().fold(0, |n, &((x1, y1), (x2, y2))| {
+            let c = i32::abs(if x1 == x2 { y2 - y1 } else { x2 -x1 });
+            let dx = signum(x2 - x1);
+            let dy = signum(y2 - y1);
+            (0..=c).fold(n, |n, i| {
+                let x = x1 + dx * i;
+                let y = y1 + dy * i;
+                let v = *m.get(&(x, y)).unwrap_or(&0);
+                m.insert((x, y), v + 1);
+                if v == 1 { n + 1 } else { n }
+            })
+        })
+    }
+
+    fn range(a: i32, b: i32) -> RangeInclusive<i32> {
+        if a > b { b..=a } else { a..=b }
     }
 }
 
