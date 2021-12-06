@@ -29,17 +29,18 @@ impl Day06 {
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read, days: usize) -> BoxResult<Output> {
-        let l = io::BufReader::new(input).lines().next().ok_or(AocError)??;
-        let mut v = vec![0; 9];
-        l.split(",").map(|s| s.parse::<usize>().unwrap()).for_each(|d| {
-            v[d] = v[d] + 1;
+        let line = io::BufReader::new(input).lines().next().ok_or(AocError)??;
+        let due_times = line.split(",").map(|s| s.parse::<u32>().unwrap())
+            .collect::<Vec<_>>();
+        let init = (0..9).map(|i| due_times.iter().filter(|&e| *e == i).count())
+            .collect::<Vec<_>>();
+        let due_time_counts = (0..days).fold(init, |mut counts, i| {
+            let spawn_count = counts.remove(0);
+            counts[6] = counts[6] + spawn_count;
+            counts.push(spawn_count);
+            counts
         });
-        (0..days).for_each(|_| {
-            let n = v.remove(0);
-            v[6] = v[6] + n;
-            v.push(n);
-        });
-        Ok(v.iter().sum())
+        Ok(due_time_counts.iter().sum())
     }
 }
 
