@@ -1,4 +1,6 @@
 use crate::day::*;
+use crate::day::io::Read;
+use crate::day::error::Error;
 
 pub struct Day06 {}
 
@@ -17,24 +19,23 @@ impl Day for Day06 {
 }
 
 impl Day06 {
-    fn part1_impl(self: &Self, input: &mut dyn io::Read, days: u32) -> BoxResult<Output> {
-        let l = io::BufReader::new(input).lines().next().ok_or(AocError)??;
-        let mut v = l.split(",").map(|s| s.parse::<u32>().unwrap())
-            .collect::<Vec<_>>();
-        (0..days).for_each(|i| {
-            (0..v.len()).for_each(|i|
-                if v[i] == 0 { v[i] = 6; v.push(8) } else { v[i] = v[i] - 1 });
-        });
-        Ok(v.len())
+    fn part1_impl(self: &Self, input: &mut dyn io::Read, days: usize)
+        -> BoxResult<Output> {
+        Self::process(input, days)
     }
 
-    fn part2_impl(self: &Self, input: &mut dyn io::Read, days: usize) -> BoxResult<Output> {
+    fn part2_impl(self: &Self, input: &mut dyn io::Read, days: usize)
+        -> BoxResult<Output> {
+        Self::process(input, days)
+    }
+
+    fn process(input: &mut dyn Read, days: usize) -> Result<usize, Box<dyn Error>> {
         let line = io::BufReader::new(input).lines().next().ok_or(AocError)??;
         let due_times = line.split(",").map(|s| s.parse::<u32>().unwrap())
             .collect::<Vec<_>>();
         let init = (0..9).map(|i| due_times.iter().filter(|&e| *e == i).count())
             .collect::<Vec<_>>();
-        let due_time_counts = (0..days).fold(init, |mut counts, i| {
+        let due_time_counts = (0..days).fold(init, |mut counts, _| {
             let spawn_count = counts.remove(0);
             counts[6] = counts[6] + spawn_count;
             counts.push(spawn_count);
@@ -48,7 +49,7 @@ impl Day06 {
 mod tests {
     use super::*;
 
-    fn test1(s: &str, days: u32, f: Output) {
+    fn test1(s: &str, days: usize, f: Output) {
         assert_eq!(Day06 {}.part1_impl(&mut s.as_bytes(), days).ok(), Some(f));
     }
 
