@@ -2,7 +2,7 @@ use crate::day::*;
 
 pub struct Day07 {}
 
-type Output = i64;
+type Output = i32;
 
 impl Day for Day07 {
     fn tag(&self) -> &str { "07" }
@@ -18,11 +18,23 @@ impl Day for Day07 {
 
 impl Day07 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Err(Box::new(AocError))
+        let line = io::BufReader::new(input).lines().next().ok_or(AocError)??;
+        let positions = line.split(",").map(|s| s.parse().unwrap())
+            .collect::<Vec<_>>();
+        let costs = (0..=*positions.iter().max().ok_or(AocError)?)
+            .map(|tgt| positions.iter().map(|&p| Output::abs(p - tgt)).sum());
+        Ok(costs.min().ok_or(AocError)?)
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Err(Box::new(AocError))
+        let line = io::BufReader::new(input).lines().next().ok_or(AocError)??;
+        let positions = line.split(",").map(|s| s.parse().unwrap())
+            .collect::<Vec<_>>();
+        let costs = (0..=*positions.iter().max().ok_or(AocError)?)
+            .map(|tgt| positions.iter()
+                .map(|&p| { let n = Output::abs(p - tgt); n * (1 + n) / 2 })
+                .sum());
+        Ok(costs.min().ok_or(AocError)?)
     }
 }
 
@@ -36,7 +48,7 @@ mod tests {
 
     #[test]
     fn part1() {
-        test1("", 0);
+        test1("16,1,2,0,4,2,7,1,2,14", 37);
     }
 
     fn test2(s: &str, f: Output) {
@@ -45,6 +57,6 @@ mod tests {
 
     #[test]
     fn part2() {
-        test2("", 0);
+        test2("16,1,2,0,4,2,7,1,2,14", 168);
     }
 }
