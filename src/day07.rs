@@ -20,17 +20,17 @@ impl Day for Day07 {
 
 impl Day07 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Self::minimal__fuel(
-            input, |pos: Output, tgt: Output| Output::abs(pos -tgt))
+        Self::minimal_fuel(
+            input, |pos: Output, tgt: Output| Output::abs(pos - tgt))
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Self::minimal__fuel(
+        Self::minimal_fuel(
             input,
             |pos, tgt| { let n = Output::abs((pos - tgt)); n * (n + 1) / 2 })
     }
 
-    fn minimal__fuel(input: &mut dyn Read, f: fn(Output, Output) -> Output)
+    fn minimal_fuel(input: &mut dyn Read, f: fn(Output, Output) -> Output)
         -> Result<i32, Box<dyn Error>> {
         let line = io::BufReader::new(input).lines().next().ok_or(AocError)??;
         let positions = line.split(",").map(|s| s.parse().unwrap())
