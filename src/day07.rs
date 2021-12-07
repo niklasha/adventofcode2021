@@ -1,4 +1,6 @@
 use crate::day::*;
+use crate::day::io::Read;
+use crate::day::error::Error;
 
 pub struct Day07 {}
 
@@ -18,22 +20,23 @@ impl Day for Day07 {
 
 impl Day07 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let line = io::BufReader::new(input).lines().next().ok_or(AocError)??;
-        let positions = line.split(",").map(|s| s.parse().unwrap())
-            .collect::<Vec<_>>();
-        let costs = (0..=*positions.iter().max().ok_or(AocError)?)
-            .map(|tgt| positions.iter().map(|&p| Output::abs(p - tgt)).sum());
-        Ok(costs.min().ok_or(AocError)?)
+        Self::minimal__fuel(
+            input, |pos: Output, tgt: Output| Output::abs(pos -tgt))
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        Self::minimal__fuel(
+            input,
+            |pos, tgt| { let n = Output::abs((pos - tgt)); n * (n + 1) / 2 })
+    }
+
+    fn minimal__fuel(input: &mut dyn Read, f: fn(Output, Output) -> Output)
+        -> Result<i32, Box<dyn Error>> {
         let line = io::BufReader::new(input).lines().next().ok_or(AocError)??;
         let positions = line.split(",").map(|s| s.parse().unwrap())
             .collect::<Vec<_>>();
         let costs = (0..=*positions.iter().max().ok_or(AocError)?)
-            .map(|tgt| positions.iter()
-                .map(|&p| { let n = Output::abs(p - tgt); n * (1 + n) / 2 })
-                .sum());
+            .map(|tgt| positions.iter().map(|&p| f(p, tgt)).sum());
         Ok(costs.min().ok_or(AocError)?)
     }
 }
