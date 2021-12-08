@@ -1,7 +1,6 @@
 use num::signum;
 use regex::Regex;
 use std::collections::HashMap;
-use std::ops::RangeInclusive;
 use crate::day::*;
 
 pub struct Day05 {}
@@ -60,10 +59,6 @@ impl Day05 {
                 if v == 1 { n + 1 } else { n }
             })
         })
-    }
-
-    fn range(a: i32, b: i32) -> RangeInclusive<i32> {
-        if a > b { b..=a } else { a..=b }
     }
 }
 

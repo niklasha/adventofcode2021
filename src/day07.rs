@@ -27,7 +27,7 @@ impl Day07 {
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::minimal_fuel(
             input,
-            |pos, tgt| { let n = Output::abs((pos - tgt)); n * (n + 1) / 2 })
+            |pos, tgt| { let n = Output::abs(pos - tgt); n * (n + 1) / 2 })
     }
 
     fn minimal_fuel(input: &mut dyn Read, f: fn(Output, Output) -> Output)
