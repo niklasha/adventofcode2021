@@ -40,21 +40,20 @@ impl Day08 {
             ("abdfg", 5), ("abdefg", 6), ("acf", 7), ("abcdefg", 8),
             ("abcdfg", 9)
         ].into_iter().collect::<HashMap<_, _>>();
-        let permutations = "abcdefg".chars().permutations(7).collect::<Vec<_>>();
+        let translations
+            = "abcdefg".chars().permutations(7).collect::<Vec<_>>();
         Ok(lines.iter()
             .map(|(input, output)| {
-                let p = permutations.iter().find(|p| input.iter().chain(output.iter())
-                    .all(|digit| {
+                let translation
+                    = translations.iter().find(|candidate| input.iter()
+                    .all(|digit|
                         segments.contains_key(
-                            digit.chars().map(|c| p[c as usize - 'a' as usize])
-                                .sorted().collect::<String>().as_str())
-                    }))
+                            Self::translate(&digit, candidate).as_str())))
                     .unwrap();
                 output.iter()
                     .map(|digit|
                         segments.get(
-                            digit.chars().map(|c| p[c as usize - 'a' as usize])
-                                .sorted().collect::<String>().as_str())
+                            Self::translate(&digit, &translation).as_str())
                             .unwrap())
                     .fold(0, |s, n| s * 10 + n)
             })
@@ -77,6 +76,10 @@ impl Day08 {
                 cap[9].parse()?, cap[10].parse()?],
             vec![cap[11].parse()?, cap[12].parse()?,
                 cap[13].parse()?, cap[14].parse()?]))
+    }
+
+    fn translate(s: &str, key: &Vec<char>) -> String {
+        s.chars().map(|c| key[c as usize - 'a' as usize]).sorted().collect()
     }
 }
 
