@@ -130,7 +130,6 @@ impl Day12 {
             })
     }
 
-    // init example:
     fn traverse<S>(graph: &Graph, init: S) -> HashSet<S>
         where S: Hash + Eq + State + Clone {
         (0..).fold_while(
