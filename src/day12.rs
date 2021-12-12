@@ -1,7 +1,13 @@
-use crate::day::*;
-use itertools::FoldWhile::{Done, Continue};
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
+use std::iter;
+use std::str::FromStr;
+
+use itertools::FoldWhile::{Continue, Done};
+use regex::Regex;
+
+use crate::day::*;
+use crate::day::io::Read;
 
 pub struct Day12 {}
 
@@ -27,141 +33,126 @@ enum Vertex {
     Big(String)
 }
 
-impl Vertex {
-    fn from_str(s: String) -> BoxResult<Vertex> {
-        Ok(match s.as_str() {
+impl FromStr for Vertex {
+    type Err = AocError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
             "start" => Self::Start,
             "end" => Self::End,
             _ if s.chars().next().ok_or(AocError)?.is_lowercase() =>
-                Self::Small(s),
-            _ => Self::Big(s)
+                Self::Small(s.to_string()),
+            _ => Self::Big(s.to_string())
         })
-    }
-
-    fn to_str(&self) -> &str {
-        match self {
-            Self::Start => "start",
-            Self::End => "end",
-            Self::Small(s) => &s,
-            Self::Big(s) => &s,
-        }
     }
 }
 
 type Path = Vec<Vertex>;
 type Graph = HashMap<Vertex, HashSet<Vertex>>;
 
+trait State {
+    fn path_mut(&mut self) -> &mut Path;
+    fn path(&self) -> &Path;
+    fn next_state(&self, candidate: &Vertex) -> Option<Box<Self>>;
+}
+
+impl State for Path {
+    fn path_mut(&mut self) -> &mut Path { self }
+
+    fn path(&self) -> &Path { self }
+
+    fn next_state(&self, candidate: &Vertex) -> Option<Box<Self>> {
+        if match candidate {
+            Vertex::Small(_) =>
+                self.path().contains(&candidate),
+            _ => false
+        } { None } else {
+            let mut new_state = self.clone();
+            new_state.path_mut().push(candidate.clone());
+            Some(Box::new(new_state))
+        }
+    }
+}
+
+#[derive(Hash, Eq, PartialEq, Clone)]
+struct State2(Path, Option<Vertex>);
+impl State for State2 {
+    fn path_mut(&mut self) -> &mut Path { &mut self.0 }
+
+    fn path(&self) -> &Path { &self.0 }
+
+    fn next_state(&self, candidate: &Vertex) -> Option<Box<Self>> {
+        let chosen_vertex = &self.1;
+        let (block, chosen_vertex) = match candidate {
+            Vertex::Small(_) => {
+                let visits = self.path().iter()
+                    .filter(|&vertex| vertex == candidate).count();
+                let is_second_ok
+                    = *chosen_vertex == None
+                    || chosen_vertex.as_ref() == Some(candidate);
+                (visits > 1 || visits == 1 && !is_second_ok.clone(),
+                 if visits == 1 && is_second_ok { Some(candidate.clone()) }
+                 else { chosen_vertex.clone() })
+            },
+            _ => (false, chosen_vertex.clone())
+        };
+        if block { None } else {
+            let mut new_path = self.path().clone();
+            new_path.push(candidate.clone());
+            Some(Box::new(State2(new_path, chosen_vertex.clone())))
+        }
+    }
+}
+
 impl Day12 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let edges = io::BufReader::new(input).lines()
+        Ok(Self::traverse(&Self::get_graph(input), vec![Vertex::Start]).len())
+    }
+
+    fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        Ok(Self::traverse(
+            &Self::get_graph(input), State2(vec![Vertex::Start], None))
+            .len())
+    }
+
+    fn get_graph(input: &mut dyn Read) -> Graph {
+        io::BufReader::new(input).lines()
             .map(|l| Self::parse(&l.unwrap()).unwrap())
-            .collect::<Vec<_>>();
-        let mut vertices: HashSet<Vertex> = HashSet::new();
-        let mut graph: Graph = HashMap::new();
-        for (a, b) in edges {
-            if !vertices.contains(&a) { vertices.insert(a.clone()); }
-            if !vertices.contains(&b) { vertices.insert(b.clone()); }
-            Self::connect(&mut graph, a, b);
-        }
-        let paths = (0..).fold_while(
-            vec![vec![Vertex::Start]].into_iter().collect::<HashSet<Path>>(),
-            |paths, _| {
-                let new_paths = paths.iter().flat_map(|path| {
-                    let last = path.last().unwrap();
-                    if *last == Vertex::End { vec![path.clone()] }
+            .fold(HashMap::new(), |mut graph, (a, b)| {
+                let mut add = |a: &Vertex, b: &Vertex| {
+                    graph.entry(a.clone())
+                        .and_modify(
+                            |neighbours| { (*neighbours).insert(b.clone()); })
+                        .or_insert(iter::once(b.clone()).collect::<HashSet<_>>());
+                };
+                if a != Vertex::End && b != Vertex::Start { add(&a, &b); }
+                if b != Vertex::End && a != Vertex::Start { add(&b, &a); }
+                graph
+            })
+    }
+
+    // init example:
+    fn traverse<S>(graph: &Graph, init: S) -> HashSet<S>
+        where S: Hash + Eq + State + Clone {
+        (0..).fold_while(
+            iter::once(init).collect::<HashSet<_>>(),
+            |states, _| {
+                let new_states = states.iter().flat_map(|state| {
+                    let last = state.path().last().unwrap();
+                    if *last == Vertex::End { vec![state.clone()] }
                     else {
                         let candidates = graph.get(&last);
                         if candidates.is_none() { vec![] } else {
                             candidates.unwrap().iter().flat_map(|candidate|
-                                if match candidate {
-                                    Vertex::Small(_) =>
-                                        path.contains(&candidate),
-                                    _ => false
-                                } { None } else {
-                                    let mut new_path = path.clone();
-                                    new_path.push(candidate.clone());
-                                    Some(new_path)
-                                })
+                                state.next_state(candidate).map(|s| *s))
                                 .collect()
                         }
                     }
                 }).collect::<HashSet<_>>();
-                if new_paths.iter().all(|path| path.last() == Some(&Vertex::End))
-                { Done(new_paths) }
-                else { Continue(new_paths) }
-            })
-            .into_inner();
-        Ok(paths.len())
-    }
-
-    fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let edges = io::BufReader::new(input).lines()
-            .map(|l| Self::parse(&l.unwrap()).unwrap())
-            .collect::<Vec<_>>();
-        let mut vertices: HashSet<Vertex> = HashSet::new();
-        let mut graph: Graph = HashMap::new();
-        for (a, b) in edges {
-            if !vertices.contains(&a) { vertices.insert(a.clone()); }
-            if !vertices.contains(&b) { vertices.insert(b.clone()); }
-            Self::connect(&mut graph, a, b);
-        }
-        let paths = (0..).fold_while(
-            vec![(vec![Vertex::Start], None)].into_iter()
-                .collect::<HashSet<(Path, Option<Vertex>)>>(),
-            |states, i| {
-                let new_states = states.iter().flat_map(|(path, chosen_vertex)| {
-                    let last = path.last().unwrap();
-                    if *last == Vertex::End { vec![(path.clone(), chosen_vertex.clone())] }
-                    else {
-                        let candidates = graph.get(&last);
-                        if candidates.is_none() { vec![] } else {
-                            candidates.unwrap().iter().flat_map(|candidate| {
-                                let (block, chosen_vertex) = match candidate {
-                                    Vertex::Small(_) => {
-                                        let visits = path.iter()
-                                            .filter(|&vertex| vertex == candidate).count();
-                                        let is_second_ok
-                                            = *chosen_vertex == None
-                                            || chosen_vertex.as_ref() == Some(candidate);
-                                        (visits > 1 || visits == 1 && !is_second_ok,
-                                         if visits == 1 && is_second_ok { Some(candidate.clone()) } else { chosen_vertex.clone() })
-                                    },
-                                    _ => (false, chosen_vertex.clone())
-                                };
-                                if block { None } else {
-                                    let mut new_path = path.clone();
-                                    new_path.push(candidate.clone());
-                                    Some((new_path, chosen_vertex.clone()))
-                                }
-                            }).collect()
-                        }
-                    }
-                }).collect::<HashSet<(_, _)>>();
-                if new_states.iter().all(|(path, _)| path.last() == Some(&Vertex::End))
+                if new_states.iter().all(|state| state.path().last() == Some(&Vertex::End))
                     { Done(new_states) }
                 else { Continue(new_states) }
             })
-            .into_inner();
-        Ok(paths.len())
-    }
-
-    fn connect(graph: &mut Graph, a: Vertex, b: Vertex) {
-        if a != Vertex::End && b != Vertex::Start {
-            if !graph.contains_key(&a) {
-                let connections = HashSet::new();
-                graph.insert(a.clone(), connections);
-            }
-            // XXX Is there a way to not clone here?
-            // XXX Is it not generating overhead?
-            graph.get_mut(&a).unwrap().insert(b.clone());
-        }
-        if b != Vertex::End && a != Vertex::Start {
-            if !graph.contains_key(&b) {
-                let connections = HashSet::new();
-                graph.insert(b.clone(), connections);
-            }
-            graph.get_mut(&b).unwrap().insert(a);
-        }
+            .into_inner()
     }
 
     fn parse(s: &str) -> BoxResult<(Vertex, Vertex)> {
@@ -169,8 +160,7 @@ impl Day12 {
             static ref RE: Regex= Regex::new("(\\w+)-(\\w+)").unwrap();
         }
         let cap = RE.captures(s).ok_or(AocError)?;
-        Ok((Vertex::from_str(cap[1].to_string())?,
-            Vertex::from_str(cap[2].to_string())?))
+        Ok((Vertex::from_str(&cap[1])?, Vertex::from_str(&cap[2])?))
     }
 }
 
