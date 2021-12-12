@@ -65,7 +65,7 @@ impl Day11 {
             map.iter_mut().for_each(|row|
                 (*row).iter_mut().filter(|octopus| **octopus > 9)
                     .for_each(|octopus| *octopus = 0));
-            if (new == size) {
+            if new == size {
                 Done((flashes + new, map, i))
             } else {
                 Continue((flashes + new, map, i))
