@@ -55,6 +55,7 @@ trait State {
     fn next_state(&self, candidate: &Vertex) -> Option<Box<Self>>;
 }
 
+// Part 1 keeps the traversal path as the traversal state.
 impl State for Path {
     fn path_mut(&mut self) -> &mut Path { self }
 
@@ -73,6 +74,8 @@ impl State for Path {
     }
 }
 
+// In part 2 the traversal state is extended with an optionally chosen small
+// cave.
 #[derive(Hash, Eq, PartialEq, Clone)]
 struct State2(Path, Option<Vertex>);
 impl State for State2 {
@@ -122,7 +125,8 @@ impl Day12 {
                     graph.entry(a.clone())
                         .and_modify(
                             |neighbours| { (*neighbours).insert(b.clone()); })
-                        .or_insert(iter::once(b.clone()).collect::<HashSet<_>>());
+                        .or_insert(
+                            iter::once(b.clone()).collect::<HashSet<_>>());
                 };
                 if a != Vertex::End && b != Vertex::Start { add(&a, &b); }
                 if b != Vertex::End && a != Vertex::Start { add(&b, &a); }
@@ -130,7 +134,6 @@ impl Day12 {
             })
     }
 
-    // init example:
     fn traverse<S>(graph: &Graph, init: S) -> HashSet<S>
         where S: Hash + Eq + State + Clone {
         (0..).fold_while(
@@ -148,7 +151,8 @@ impl Day12 {
                         }
                     }
                 }).collect::<HashSet<_>>();
-                if new_states.iter().all(|state| state.path().last() == Some(&Vertex::End))
+                if new_states.iter()
+                    .all(|state| state.path().last() == Some(&Vertex::End))
                     { Done(new_states) }
                 else { Continue(new_states) }
             })
