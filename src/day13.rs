@@ -1,6 +1,7 @@
 use crate::day::*;
 use regex::Regex;
 use std::collections::HashSet;
+use crate::day::io::{Read, BufReader, Lines};
 
 pub struct Day13 {}
 
@@ -20,21 +21,13 @@ impl Day for Day13 {
 
 impl Day13 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut lines = io::BufReader::new(input).lines();
-        let grid = lines.by_ref()
-            .take_while(|line| line.as_ref().map_or(false, |line| !line.is_empty()))
-            .map(|line| line.map_err(|e| e.into()).and_then(Self::parse_dot))
-            .map(|r| r.unwrap()).collect::<Vec<_>>();
+        let (mut lines, grid) = Self::parse(input);
         let fold_spec = Self::parse_fold(lines.next().ok_or(AocError)??)?;
         Ok(Self::fold(&grid, fold_spec).len())
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<String> {
-        let mut lines = io::BufReader::new(input).lines();
-        let grid = lines.by_ref()
-            .take_while(|line| line.as_ref().map_or(false, |line| !line.is_empty()))
-            .map(|line| line.map_err(|e| e.into()).and_then(Self::parse_dot))
-            .map(|r| r.unwrap()).collect::<Vec<_>>();
+        let (mut lines, grid) = Self::parse(input);
         let grid = lines.fold(grid, |grid, line| {
             let fold_spec = Self::parse_fold(line.unwrap()).unwrap();
             Self::fold(&grid, fold_spec)
@@ -42,14 +35,25 @@ impl Day13 {
         Ok(Self::visualise(&grid))
     }
 
+    fn parse(input: &mut dyn Read) -> (Lines<BufReader<&mut dyn Read>>, Vec<(usize, usize)>) {
+        let mut lines = io::BufReader::new(input).lines();
+        let grid = lines.by_ref()
+            .take_while(|line|
+                line.as_ref().map_or(false, |line| !line.is_empty()))
+            .map(|line| line.map_err(|e| e.into()).and_then(Self::parse_dot))
+            .map(|r| r.unwrap()).collect::<Vec<_>>();
+        (lines, grid)
+    }
+
     fn visualise(grid: &Vec<(usize, usize)>) -> String {
         let x_size = grid.iter().map(|cell| cell.0).max().unwrap() + 1;
-        let y_size = grid.iter().map(|cell| cell.0).max().unwrap() + 1;
+        let y_size = grid.iter().map(|cell| cell.1).max().unwrap() + 1;
         let mut out = vec![vec![' '; x_size]; y_size];
         for (x, y) in grid {
             out[*y][*x] = '#';
         }
-        out.into_iter().map(|row| row.into_iter().collect::<String>()).join("\n")
+        out.into_iter().map(|row| row.into_iter().collect::<String>())
+            .join("\n")
     }
 
     fn fold(grid: &Vec<(usize, usize)>, spec: (bool, usize)) -> Vec<(usize, usize)> {
