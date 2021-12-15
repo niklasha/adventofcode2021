@@ -27,7 +27,9 @@ impl Day15 {
         self.process(input, Self::expand_part2)
     }
 
-    fn process(self: &Self, input: &mut dyn io::Read, f: fn(Vec<Vec<(Output, Option<Output>)>>) -> Vec<Vec<(Output, Option<Output>)>>) -> BoxResult<Output> {
+    fn process(self: &Self, input: &mut dyn io::Read,
+               f: fn(Vec<Vec<(Output, Option<Output>)>>)
+                   -> Vec<Vec<(Output, Option<Output>)>>) -> BoxResult<Output> {
         let mut grid = f(
             Utils::byte_matrix(input)?.into_iter().map(|row|
                 row.into_iter().map(|cell|
