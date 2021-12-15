@@ -4,7 +4,7 @@ use std::iter;
 
 pub struct Day15 {}
 
-type Output = i64;
+type Output = i32;
 
 impl Day for Day15 {
     fn tag(&self) -> &str { "15" }
@@ -20,14 +20,21 @@ impl Day for Day15 {
 
 impl Day15 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut grid = Utils::byte_matrix(input)?.into_iter().map(|row|
-            row.into_iter().map(|cell| ((cell - b'0') as Output, None))
-                .collect::<Vec<_>>())
-            .collect::<Vec<_>>();
+        self.process(input, |grid| grid)
+    }
+
+    fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        self.process(input, Self::expand_part2)
+    }
+
+    fn process(self: &Self, input: &mut dyn io::Read, f: fn(Vec<Vec<(Output, Option<Output>)>>) -> Vec<Vec<(Output, Option<Output>)>>) -> BoxResult<Output> {
+        let mut grid = f(
+            Utils::byte_matrix(input)?.into_iter().map(|row|
+                row.into_iter().map(|cell|
+                    ((cell - b'0') as Output, None as Option<Output>))
+                    .collect::<Vec<_>>())
+                .collect::<Vec<_>>());
         let exit = (grid[0].len() - 1, grid.len() - 1);
-        // let first_path = (0..=exit.0).map(|x| (x, 0)).chain(
-        //     (0..=exit.1).map(|y| (exit.0, y))).collect::<Vec<_>>();
-        // let first_risk = first_path.iter().map(|(x, y)| grid[*y][*x].0).sum();
         let _ = (0..).fold_while(
             vec![(vec![(0, 0)], 0)],
             |paths, _| {
@@ -43,32 +50,16 @@ impl Day15 {
         grid[exit.1][exit.0].1.ok_or(AocError.into())
     }
 
-    fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let grid0 = Utils::byte_matrix(input)?.into_iter().map(|row|
-            row.into_iter().map(|cell| ((cell - b'0') as Output, None as Option<Output>))
-                .collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-        let (sx0, sy0) = (grid0[0].len(), grid0.len());
-        let mut grid = (0..sy0 * 5).map(|y|
+    fn expand_part2(grid: Vec<Vec<(Output, Option<Output>)>>)
+        -> Vec<Vec<(Output, Option<Output>)>> {
+        let (sx0, sy0) = (grid[0].len(), grid.len());
+        (0..sy0 * 5).map(|y|
             (0..sx0 * 5).map(|x|
-                ((grid0[y % sy0][x % sx0].0 + (x / sx0 + y / sy0) as Output - 1) % 9 + 1,
+                ((grid[y % sy0][x % sx0].0 + (x / sx0 + y / sy0) as Output - 1)
+                     % 9 + 1,
                  None))
                 .collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-        let exit = (grid[0].len() - 1, grid.len() - 1);
-        let _ = (0..).fold_while(
-            vec![(vec![(0, 0)], 0)],
-            |paths, _| {
-                let paths = paths.into_iter()
-                    .flat_map(|path| Self::walk(&mut grid, &path))
-                    .collect::<Vec<_>>();
-                let best = grid[exit.1][exit.0].1;
-                let done = best.is_some()
-                    && paths.iter().all(|(_, risk)| *risk >= best.unwrap());
-                if done { Done(paths) } else { Continue(paths) }
-            })
-            .into_inner();
-        grid[exit.1][exit.0].1.ok_or(AocError.into())
+            .collect::<Vec<_>>()
     }
 
     fn walk(grid: &mut Vec<Vec<(Output, Option<Output>)>>,
