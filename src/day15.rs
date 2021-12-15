@@ -4,7 +4,7 @@ use std::iter;
 
 pub struct Day15 {}
 
-type Output = i32;
+type Output = i64;
 
 impl Day for Day15 {
     fn tag(&self) -> &str { "15" }
@@ -73,14 +73,12 @@ impl Day15 {
         let (usx, usy) = (grid[0].len(), grid.len());
         let (sx, sy) = (usx as isize, usy as isize);
         [(-1, 0), (0, -1), (1, 0), (0, 1)].iter().flat_map(|(dx, dy)|
-            if x + dx < 0 || y + dy < 0 || x + dx >= sx || y + dy >= sy
-                || path.0.contains(&((x + dx) as usize, (y + dy) as usize))
-                { None }
-            else { Some(((x + dx) as usize, (y + dy) as usize)) })
-            .flat_map(|(x, y)| {
+            if x + dx < 0 || y + dy < 0 || x + dx >= sx || y + dy >= sy { None }
+            else {
+                let (x, y) = ((x + dx) as usize, (y + dy) as usize);
                 let (local_risk, risk_so_far) = grid[y][x];
                 let risk = path.1 + local_risk;
-                if risk_so_far.is_none() || risk < risk_so_far.unwrap() {
+                if risk_so_far.map_or(true, |risk_so_far| risk < risk_so_far) {
                     grid[y][x].1 = Some(risk);
                     Some(
                         (path.0.iter().cloned().chain(iter::once((x, y)))
