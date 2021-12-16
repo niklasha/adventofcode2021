@@ -20,55 +20,20 @@ impl Day for Day16 {
 
 impl Day16 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut bits = io::BufReader::new(input).lines().next().ok_or(AocError)??
-            .chars().map(|c| match c {
-            '0' => Ok("0000"),
-            '1' => Ok("0001"),
-            '2' => Ok("0010"),
-            '3' => Ok("0011"),
-            '4' => Ok("0100"),
-            '5' => Ok("0101"),
-            '6' => Ok("0110"),
-            '7' => Ok("0111"),
-            '8' => Ok("1000"),
-            '9' => Ok("1001"),
-            'A' => Ok("1010"),
-            'B' => Ok("1011"),
-            'C' => Ok("1100"),
-            'D' => Ok("1101"),
-            'E' => Ok("1110"),
-            'F' => Ok("1111"),
-            _ => Err(AocError)
-        }.unwrap())
-            .join("");
-        let (_, sum, _) = Self::packet(&mut bits.chars())?;
-        Ok(sum)
+        Ok(Self::packet(&mut Self::bits(input)?.chars())?.1)
     }
 
     fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut bits = io::BufReader::new(input).lines().next().ok_or(AocError)??
-            .chars().map(|c| match c {
-            '0' => Ok("0000"),
-            '1' => Ok("0001"),
-            '2' => Ok("0010"),
-            '3' => Ok("0011"),
-            '4' => Ok("0100"),
-            '5' => Ok("0101"),
-            '6' => Ok("0110"),
-            '7' => Ok("0111"),
-            '8' => Ok("1000"),
-            '9' => Ok("1001"),
-            'A' => Ok("1010"),
-            'B' => Ok("1011"),
-            'C' => Ok("1100"),
-            'D' => Ok("1101"),
-            'E' => Ok("1110"),
-            'F' => Ok("1111"),
-            _ => Err(AocError)
-        }.unwrap())
-            .join("");
-        let (_, _, value) = Self::packet(&mut bits.chars())?;
-        Ok(value)
+        Ok(Self::packet(&mut Self::bits(input)?.chars())?.2)
+    }
+
+    fn bits(input: &mut dyn io::Read) -> BoxResult<String> {
+        Ok(io::BufReader::new(input).lines().next()
+            .ok_or(AocError)??.chars()
+            .map(|c|
+                u8::from_str_radix(c.to_string().as_str(), 16)
+                    .map(|d| format!("{:04b}", d)))
+            .collect::<Result<Vec<_>, _>>()?.join(""))
     }
 
     fn packet(bits: &mut Chars) -> BoxResult<(usize, Output, Output)> {
@@ -84,20 +49,25 @@ impl Day16 {
     }
 
     fn literal(bits: &mut Chars) -> BoxResult<(usize, Output, Output)> {
-        let mut value = 0;
-        let mut len = 0;
-        loop {
-            let not_last = bits.next().ok_or(AocError)?;
-            let number
-                = Output::from_str_radix(&bits.take(4).collect::<String>(), 2)?;
-            value = value * 16 + number;
-            len += 5;
-            match not_last {
-                '1' => continue,
-                '0' => break,
-                _ => Err(AocError)?
-            }
-        }
+        let chunks = bits.chunks(5);
+        let (len, value) = chunks.into_iter()
+            .fold_while(
+                Ok((0, 0)),
+                |len_val, mut bits| match len_val {
+                    Ok((len, value)) => match bits.next() {
+                        Some(bit) => {
+                            let rv
+                                = Output::from_str_radix(
+                                &bits.take(4).collect::<String>(), 2)
+                                .map(|number| (5 + len, value * 16 + number))
+                                .map_err(|e| AocError);
+                            if bit == '1' { Continue(rv) } else { Done(rv) }
+                        },
+                        _ => Done(Err(AocError))
+                    },
+                    _ => Done(len_val)
+                })
+            .into_inner()?;
         Ok((len, 0, value))
     }
 
