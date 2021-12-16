@@ -102,15 +102,15 @@ impl Day16 {
             _ => Err(AocError)?
         };
         let value = match op {
-            0 => args.into_iter().sum::<Output>(),
-            1 => args.into_iter().product(),
-            2 => args.into_iter().min().unwrap(),
-            3 => args.into_iter().max().unwrap(),
-            5 => if args[0] > args[1] { 1 } else { 0 },
-            6 => if args[0] < args[1] { 1 } else { 0 },
-            7 => if args[0] == args[1] { 1 } else { 0 },
-            _ => 0 // XXX error
-        };
+            0 => Ok(args.into_iter().sum::<Output>()),
+            1 => Ok(args.into_iter().product()),
+            2 => Ok(args.into_iter().min().unwrap()),
+            3 => Ok(args.into_iter().max().unwrap()),
+            5 => Ok(if args[0] > args[1] { 1 } else { 0 }),
+            6 => Ok(if args[0] < args[1] { 1 } else { 0 }),
+            7 => Ok(if args[0] == args[1] { 1 } else { 0 }),
+            _ => Err(AocError)
+        }?;
         Ok((len, sum, value))
     }
 }
