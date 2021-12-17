@@ -60,7 +60,7 @@ impl Day16 {
                                 = Output::from_str_radix(
                                 &bits.take(4).collect::<String>(), 2)
                                 .map(|number| (5 + len, value * 16 + number))
-                                .map_err(|e| AocError);
+                                .map_err(|_| AocError);
                             if bit == '1' { Continue(rv) } else { Done(rv) }
                         },
                         _ => Done(Err(AocError))
