@@ -21,6 +21,24 @@ impl Day for Day17 {
 
 type Area = (Output, Output, Output, Output);
 
+// XXX Could drop Undetermined and instead model the state as an
+// XXX Either<Output, ShotResult> for a better type safety.
+#[derive(Clone, Copy, Debug)]
+enum ShotState {
+    Undetermined(Output),
+    Hit(Output),
+    Miss
+}
+
+impl ShotState {
+    fn height(self) -> Option<Output> {
+        match self {
+            ShotState::Undetermined(h) | ShotState::Hit(h) => Some(h),
+            _ => None
+        }
+    }
+}
+
 impl Day17 {
     fn parse(s: String) -> BoxResult<Area> {
         lazy_static! {
@@ -46,39 +64,55 @@ impl Day17 {
         Self::count(target)
     }
 
+    fn get_lowest_vx_that_reaches(target: &Area) -> BoxResult<Output> {
+        (1..).map(|vx| (vx, vx * (vx + 1) / 2)).find(|(_, x)| x >= &target.0)
+            .map(|(vx, _)| vx).ok_or(AocError.into())
+    }
+
     fn find_max_height(target: Area) -> BoxResult<Output> {
-        let heights = (0..).flat_map(|vy| {
-            (1..=target.1).map(move |vx| Self::shot(&target, vx, vy, Some(0)))
-        }).take(100000).flatten(); // XXX what's the correct ending condition?
+        let low_vx = Self::get_lowest_vx_that_reaches(&target)?;
+        // XXX Assume target is lower that our starting point
+        let heights = (0..=-target.2).flat_map(|vy|
+            (low_vx..=target.1).map(move |vx|
+                Self::shot(&target, vx, vy, Some(0)).height()))
+            .flatten();
         Ok(heights.max().ok_or(AocError)?)
     }
 
     fn count(target: Area) -> BoxResult<Output> {
-        let heights = (target.2..).flat_map(|vy| {
-            (1..=target.1).map(move |vx| Self::shot(&target, vx, vy, None))
-        }).take(100000).flatten(); // XXX what's the correct ending condition?
+        let low_vx = Self::get_lowest_vx_that_reaches(&target)?;
+        // XXX Assume target is lower that our starting point
+        let heights = (target.2..=-target.2).flat_map(|vy|
+            (low_vx..=target.1).map(move |vx|
+                Self::shot(&target, vx, vy, None).height()))
+            .flatten();
         Ok(heights.count() as Output)
     }
 
-    fn shot(target: &Area, vx: Output, vy: Output, limit: Option<Output>) -> Option<Output> {
+    fn shot(target: &Area, vx: Output, vy: Output, limit: Option<Output>)
+        -> ShotState {
+        use ShotState::*;
         let (tx0, tx1, ty0, ty1) = *target;
         (0..).fold_while(
-            (0, 0, vx, vy, Some(0)),
-            |(x, y, vx, vy, h), _| {
+            (0, 0, vx, vy, Undetermined(0)),
+            |(x, y, vx, vy, state), _| {
                 let (nx, ny) = (x + vx, y + vy);
+                let early_termination = limit.map_or(
+                    false,
+                    |limit|
+                        vy <= 0 && state.height().map_or(true, |h| h < limit));
                 if nx >= tx0 && ny <= ty1 || ny < ty0 || nx > tx1
-                    || limit.map_or(
-                        false,
-                        |limit| vy <= 0 && h.map_or(true, |h| h < limit)) {
+                    || early_termination {
                     Done(
                         (x, y, vx, vy,
                          if nx >= tx0 && nx <= tx1 && ny >= ty0 && ny <= ty1
-                            { h }
-                         else { None }))
+                            { state.height().map_or(state, |h| Hit(h)) }
+                         else { Miss }))
                 } else {
                     Continue(
                         (nx, ny, if vx > 0 { vx - 1 } else { 0 }, vy - 1,
-                         Some(h.map_or(ny, |h| cmp::max(ny, h)))))
+                         Undetermined(
+                             state.height().map_or(ny, |h| cmp::max(ny, h)))))
                 }
             }).into_inner().4
     }
