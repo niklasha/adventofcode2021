@@ -128,7 +128,7 @@ impl Node {
                     *to_the_right = Some(right.regular().ok_or(AocError)?);
                     // Due to borrowing rules, I could not replace the current
                     // node with a regular number zero here.  Instead I patch
-                    // that up in a separate function: remove_exploded.
+                    // that up in a separate function: remove_exploded_pair.
                     Ok(true)
                 } else {
                     let did_explode = left.explode(
