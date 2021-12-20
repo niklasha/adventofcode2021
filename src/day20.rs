@@ -21,13 +21,6 @@ impl Day for Day20 {
 impl Day20 {
     fn part1_impl(self: &Self, input: &mut dyn io::Read, n: usize) -> BoxResult<Output> {
         let (translation, image) = Self::parse(input)?;
-        println!("{} {:?}", translation.len(), translation);
-        println!("{} {}",
-            translation.iter().collect::<String>()
-            == "######.#..##..######.....#...#.#...#.######.#.#...#..#..#..###.#####.#.####...#.#.#...#.#.#...#####..###.....#.#.....#.#.#..###..#.#.#####..#.....####.##.##..#..##.#.##.##..##.#####.####.#.#....#...#...#...#.#########..#..#####..#.#.###....#.##.###...##.#..#....##.###...#..##.#..#...#.#.#####.####...#.##..##..#.#######...#..##.##.....#..#..#.###...###.######..##.#..##.######....#.##.##...###.##..#.#.#.#########....####.####.#.#...#.#.#..#.#.##.#...#.#..#######..###..##.#..####.###...#.#.#.##.#####.##.###.#.",
-            translation.iter().collect::<String>());
-        println!("{} {:?}", image.1.len(), image);
-        Self::print(&image);
         let image
             = (0..n).fold(Ok(image), |image: BoxResult<_>, _| image
             .map(|image| Self::translate(&translation, &image)))?;
@@ -60,7 +53,6 @@ impl Day20 {
         let (x0, y0, x1, y1) = image.1.iter().fold((0, 0, 0, 0), |(x0, y0, x1, y1), (x, y)|
             (cmp::min(x0, x - 1), cmp::min(y0, y - 1),
              cmp::max(x1, x + 1), cmp::max(y1, y + 1)));
-        println!("({}, {}) - ({}, {})", x0, y0, x1, y1);
         let image: (_, HashSet<_>)
             = (if translation[0] == '#' { 1 - image.0 } else { image.0 },
                (x0..=x1).flat_map(|x| (y0..=y1).flat_map(move |y| {
@@ -72,8 +64,7 @@ impl Day20 {
             });
             if translation[index] == '#' { Some((x, y)) } else { None }
         })).collect());
-        println!("{} {:?}", image.1.len(), image);
-        Self::print(&image);
+//        Self::print(&image);
         image
     }
 
