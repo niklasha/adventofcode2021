@@ -2,6 +2,7 @@
 extern crate closure;
 #[macro_use]
 extern crate lazy_static;
+extern crate nalgebra as na;
 //#[macro_use]
 extern crate simple_error;
 
