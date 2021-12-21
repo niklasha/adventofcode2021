@@ -28,7 +28,6 @@ impl Day21 {
         let mut score = [0, 0];
         let mut pos = [p1, p2];
         loop {
-            println!("{} {:?} {:?} {}", i, pos, score, die);
             if score[0] >= 1000 || score[1] >= 1000 { break; }
             let sum = die + (die % 100 + 1) + ((die + 1) % 100 + 1);
             pos[i % 2] = (pos[i % 2] - 1 + sum) % 10 + 1;
@@ -47,13 +46,8 @@ impl Day21 {
         let mut worlds = HashMap::new();
         worlds.insert(([0 as usize, 0 as usize], [p1 - 1, p2 - 1]), 1 as Output);
         let rolls = Self::rolls();
-        println!("rolls {:?}", rolls);
-        loop {
-//            println!("{} {:?}", i, worlds);
-            if worlds.iter()
-                .all(|((score, _), _)| score[0] >= 21 || score[1] >= 21) {
-                break;
-            }
+        while worlds.iter()
+            .any(|((score, _), _)| score[0] < 21 && score[1] < 21) {
             let mut insert_queue = vec![];
             let mut remove_queue = vec![];
             for ((score, pos), cnt) in &worlds {
@@ -68,9 +62,8 @@ impl Day21 {
                     }
                 }
             }
-            worlds.retain(|k, cnt| remove_queue.iter().find(|(key, _)| key == k).is_none());
+            worlds.retain(|k, _| !remove_queue.contains(k));
             for (k, cnt) in insert_queue {
-//                println!("{:?} {}", k, cnt);
                 worlds.entry(k).and_modify(|e| *e += cnt).or_insert(cnt);
             }
             i += 1;
