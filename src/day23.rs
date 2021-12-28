@@ -82,43 +82,39 @@ impl Burrow {
     }
 
     fn moves(
-        &self, from: &Pos, exclude: Option<&Pos>, depth: usize, home_for: Option<char>)
+        &self, from: &Pos, exclude: Option<&Pos>, depth: usize, origin: &Pos)
         -> HashSet<(Pos, usize)> {
-        let home_for
-            = if depth == 0
-            && match from { Pos::Hallway(_) => true, _ => false } {
-            self.get(from)
-        } else { home_for };
-        let allowed_room = match from {
-            Pos::Hallway(_) =>
-                home_for.map_or(None, |amphipod| Some(Self::home(amphipod))),
-            _ => None
-        };
-        if depth == 0 && self.is_immobile(from).unwrap() { HashSet::new() }
+        let amphipod = self.get(origin).unwrap();
+        if depth == 0 && self.is_immobile(origin).unwrap() { HashSet::new() }
         else {
             let adjacent = from.adjacent();
-            let adjacent = adjacent.iter()
+            let adjacent = adjacent.into_iter()
                 .filter(|to|
-                    Some(*to) != exclude && self.get(to) == None
-                    && allowed_room.map_or(
-                        true,
-                        |room| match *to {
-                            Pos::Room(no, _) => *no == room,
-                            _ => true
-                        }))
+                    Some(to) != exclude && self.get(to) == None
+                        && Self::acceptable(from, to, amphipod))
                 .collect::<HashSet<_>>();
             let moves = adjacent.iter()
-                .flat_map(|to| self.moves(to, Some(from), depth + 1, home_for))
+                .flat_map(|to| self.moves(to, Some(from), depth + 1, origin))
                 .collect::<HashSet<_>>();
-            if from.is_legal() && depth > 0 {
+            if depth > 0 && from.is_legal() && !self.no_stop(origin) {
                 moves.into_iter().chain(iter::once((from.clone(), depth))).collect()
             } else { moves }
-                .iter().filter(
-                    |(pos, _)|
-                        home_for.map_or(true, |amphipod|
-                            *pos == Pos::Room(Self::home(amphipod), 0)
-                            || *pos == Pos::Room(Self::home(amphipod), 1)))
-                .cloned().collect()
+                .iter().cloned().collect()
+        }
+    }
+
+    fn acceptable(from: &Pos, to: &Pos, amphipod: char) -> bool {
+        match (from, to) {
+            (Pos::Hallway(_), Pos::Room(no, _)) => *no == Self::home(amphipod),
+            _ => true,
+        }
+    }
+
+    fn no_stop(&self, origin: &Pos) -> bool {
+        match origin {
+            Pos::Hallway(_) => true,
+//            (Pos::Room(room1, _), Pos::Room(room2, _)) => room1 == room2,
+            _ => false
         }
     }
 
@@ -142,14 +138,18 @@ impl Burrow {
     fn home(amphipod: char) -> usize { amphipod as usize - 'A' as usize }
 
     fn is_immobile(&self, pos: &Pos) -> BoxResult<bool> {
-        match pos {
+        let amphipod = self.get(pos).ok_or(AocError)?;
+        Ok(match pos {
             Pos::Hallway(_) => {
-                let amphipod = self.get(pos).ok_or(AocError)?;
-                Ok(self.room[Self::home(amphipod)].iter()
-                    .any(|space| *space != None && *space != Some(amphipod)))
+                self.room[Self::home(amphipod)].iter()
+                    .any(|space| *space != None && *space != Some(amphipod))
             },
-            _ => Ok(false)
-        }
+            Pos::Room(no, level) =>
+                *no == Self::home(amphipod)
+                    && (*level == 1 || self.room[*no][1] == Some(amphipod))
+                || (self.hallway[*no * 2 + 1] != None
+                    && self.hallway[*no * 2 + 3] != None)
+        })
     }
 
     fn energy(&self, pos: &Pos) -> usize {
@@ -205,7 +205,7 @@ impl Day23 {
        heap.push((usize::MAX, init));
        while let Some((energy, burrow)) = heap.pop() {
            let energy = usize::MAX - energy;
-           println!("{} {} {}", heap.len(), energy, burrow);
+           if energy % 100 == 0 { println!("{} {} {}", heap.len(), energy, burrow); }
            if burrow.are_all_home() { return Ok(energy) }
 //           if energy == 440 { println!("moves {} {:?}", burrow, visited.get(&burrow)); }
            if visited.get(&burrow).map_or(false, |cost| energy > *cost) {
@@ -213,7 +213,7 @@ impl Day23 {
            }
            let occupied = burrow.occupied();
            let moves = occupied.iter().flat_map(|pos|
-               burrow.moves(&pos, None, 0, None).iter()
+               burrow.moves(&pos, None, 0, &pos).iter()
                    .map(|move_| (pos.clone(), move_.clone()))
                    .collect::<HashSet<_>>())
                .collect::<HashSet<_>>();
